@@ -41,11 +41,14 @@ public class CsvService {
       for (CsvModel csv:
            csvLines) {
 
+        // Aviod Duplicates
         if (!nome.contains(csv.getMarcaNome())){
           Optional<Factory> factoryOpt = factoryRepository.findByFactoryName(csv.getMarcaNome());
-          Factory factory = factoryOpt.orElseGet(Factory::new);
-
-          factory.setFactoryName(csv.getMarcaNome());
+          Factory factory = factoryOpt.orElseGet(() -> {
+            Factory f =  new Factory();
+            f.setFactoryName(csv.getMarcaNome());
+            return f;
+          });
 
           nome.add(csv.getMarcaNome());
           factories.add(factory);
@@ -60,9 +63,14 @@ public class CsvService {
             .filter(factory -> factory.getFactoryName().equals(csv.getMarcaNome()))
             .toList().get(0);
 
-        Car car = new Car(factoryFound, csv.getModelo(), csv.getAno(), csv.getCombustivel(), csv.getNumPortas(), csv.getValorFipe(), csv.getCor());
+        Optional<Car> ifCarAlreadyInDb = carRepository.findByFactory_IdAndModelAndAndYearAndFuelAndDoorsAndCostAndColor(factoryFound.getId(), csv.getModelo(), csv.getAno(), csv.getCombustivel(), csv.getNumPortas(), csv.getValorFipe(), csv.getCor());
 
-        cars.add(car);
+        // Avoid duplicates
+        if (ifCarAlreadyInDb.isEmpty()){
+          Car car = new Car(factoryFound, csv.getModelo(), csv.getAno(), csv.getCombustivel(), csv.getNumPortas(), csv.getValorFipe(), csv.getCor());
+
+          cars.add(car);
+        }
       }
 
     } catch (IOException | IllegalArgumentException e) {
